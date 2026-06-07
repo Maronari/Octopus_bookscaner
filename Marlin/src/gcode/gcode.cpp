@@ -36,6 +36,23 @@ GcodeSuite gcode;
 #include "queue.h"
 #include "../module/motion.h"
 
+#if ENABLED(BOOK_SCANNER_CALIBRATION)
+  #include "../feature/book_scanner_calibration.h"
+
+  void GcodeSuite::M930() {
+    const bool any_axis = parser.seen('X') || parser.seen('Y') || parser.seen('Z');
+    BookScannerCalibration::calibrate(
+      parser.seen('X') || !any_axis,
+      parser.seen('Y') || !any_axis,
+      parser.seen('Z') || !any_axis
+    );
+  }
+
+  void GcodeSuite::M931() {
+    BookScannerCalibration::report();
+  }
+#endif
+
 #if ENABLED(PRINTCOUNTER)
   #include "../module/printcounter.h"
 #endif
@@ -988,6 +1005,11 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
 
       #if ENABLED(LIN_ADVANCE)
         case 900: M900(); break;                                  // M900: Set advance K factor.
+      #endif
+
+      #if ENABLED(BOOK_SCANNER_CALIBRATION)
+        case 930: M930(); break;                                  // M930: Book scanner slow endstop calibration
+        case 931: M931(); break;                                  // M931: Book scanner calibration report
       #endif
 
       #if ANY(HAS_MOTOR_CURRENT_SPI, HAS_MOTOR_CURRENT_PWM, HAS_MOTOR_CURRENT_I2C, HAS_MOTOR_CURRENT_DAC)

@@ -1165,6 +1165,11 @@ private:
     static void M900_report(const bool forReplay=true);
   #endif
 
+  #if ENABLED(BOOK_SCANNER_CALIBRATION)
+    static void M930();
+    static void M931();
+  #endif
+
   #if HAS_TRINAMIC_CONFIG
     static void M122();
     static void M906();

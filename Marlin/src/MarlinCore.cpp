@@ -64,6 +64,10 @@
 #if ENABLED(BOOK_SCANNER_HX711)
   #include "feature/book_scanner_hx711.cpp"
 #endif
+#include "feature/book_scanner_calibration.h"
+#if ENABLED(BOOK_SCANNER_CALIBRATION)
+  #include "feature/book_scanner_calibration.cpp"
+#endif
 #include "sd/cardreader.h"
 
 #include "lcd/marlinui.h"

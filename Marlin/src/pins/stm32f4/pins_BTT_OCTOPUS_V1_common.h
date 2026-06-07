@@ -56,6 +56,12 @@
 #define E2_DIAG_PIN                         PG14  // E2DET
 #define E3_DIAG_PIN                         PG15  // E3DET
 
+#if ENABLED(BOOK_SCANNER_CALIBRATION)
+  #define NEEDS_X_MINMAX
+  #define NEEDS_Y_MINMAX
+  #define NEEDS_Z_MINMAX
+#endif
+
 //
 // Check for additional used endstop pins
 //

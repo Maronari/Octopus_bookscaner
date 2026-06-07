@@ -109,7 +109,7 @@ void BookScannerRemote::handle_command(const char c) {
       break;
 
     case '9':
-      queue.inject(F("G28 X\nG28 Y\nG28 Z"));
+      queue.inject(F("M930"));
       break;
   }
 }
