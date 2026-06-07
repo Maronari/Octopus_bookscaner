@@ -60,6 +60,10 @@
 #if ENABLED(BOOK_SCANNER_REMOTE)
   #include "feature/book_scanner_remote.cpp"
 #endif
+#include "feature/book_scanner_hx711.h"
+#if ENABLED(BOOK_SCANNER_HX711)
+  #include "feature/book_scanner_hx711.cpp"
+#endif
 #include "sd/cardreader.h"
 
 #include "lcd/marlinui.h"
@@ -882,6 +886,9 @@ void idle(const bool no_stepper_sleep/*=false*/) {
   // Handle book scanner UART remote commands
   TERN_(BOOK_SCANNER_REMOTE, BookScannerRemote::idle());
 
+  // Stop motion on book scanner pressure sensor threshold
+  TERN_(BOOK_SCANNER_HX711, BookScannerHX711::idle());
+
   // Direct Stepping
   TERN_(DIRECT_STEPPING, page_manager.write_responses());
 
@@ -1647,6 +1654,7 @@ void setup() {
   #endif
 
   TERN_(BOOK_SCANNER_REMOTE, SETUP_RUN(BookScannerRemote::init()));
+  TERN_(BOOK_SCANNER_HX711, SETUP_RUN(BookScannerHX711::init()));
 
   #if HAS_TRINAMIC_CONFIG && DISABLED(PSU_DEFAULT_OFF)
     SETUP_RUN(test_tmc_connection());

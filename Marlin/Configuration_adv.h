@@ -54,6 +54,23 @@
 #define BOOK_SCANNER_REMOTE_LIGHT_FAN_1 0
 #define BOOK_SCANNER_REMOTE_LIGHT_FAN_2 1
 
+// Laser PWM output. FAN2=PD12 on BTT Octopus. Use M106 P2 S0..255.
+#define BOOK_SCANNER_LASER_FAN 2
+
+#define BOOK_SCANNER_HX711
+
+// Default HX711 pins use the Octopus filament-detector inputs.
+#define BOOK_SCANNER_HX711_LEFT_DOUT_PIN PG12
+#define BOOK_SCANNER_HX711_LEFT_SCK_PIN  PG13
+#define BOOK_SCANNER_HX711_RIGHT_DOUT_PIN PG14
+#define BOOK_SCANNER_HX711_RIGHT_SCK_PIN  PG15
+
+// Raw ADC delta from startup tare that triggers an immediate quickstop.
+#define BOOK_SCANNER_HX711_TARE_SAMPLES 10
+#define BOOK_SCANNER_HX711_THRESHOLD 500000L
+#define BOOK_SCANNER_HX711_RELEASE_THRESHOLD 250000L
+#define BOOK_SCANNER_HX711_POLL_MS 20
+
 // @section develop
 
 /**
