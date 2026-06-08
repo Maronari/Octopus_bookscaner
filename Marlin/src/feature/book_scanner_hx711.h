@@ -11,6 +11,11 @@ class BookScannerHX711 {
 public:
   static void init();
   static void idle();
+  static bool ready();
+  static bool pressure_active();
+  static int32_t last_delta(const uint8_t sensor);
+  static void clear_pressure_stop();
+  static void set_pressure_stop_enabled(const bool enabled);
 
 private:
   static bool read_sensor(const pin_t dout_pin, const pin_t sck_pin, int32_t &value);

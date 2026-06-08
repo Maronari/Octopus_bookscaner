@@ -68,6 +68,10 @@
 #if ENABLED(BOOK_SCANNER_CALIBRATION)
   #include "feature/book_scanner_calibration.cpp"
 #endif
+#include "feature/book_scanner_press.h"
+#if ENABLED(BOOK_SCANNER_PRESS)
+  #include "feature/book_scanner_press.cpp"
+#endif
 #include "sd/cardreader.h"
 
 #include "lcd/marlinui.h"
@@ -1353,6 +1357,10 @@ void setup() {
 
   SETUP_RUN(settings.first_load());   // Load data from EEPROM if available (or use defaults)
                                       // This also updates variables in the planner, elsewhere
+
+  #if ENABLED(BOOK_SCANNER_CALIBRATION)
+    SETUP_RUN(BookScannerCalibration::init());
+  #endif
 
   #if ALL(HAS_WIRED_LCD, SHOW_BOOTSCREEN)
     SETUP_RUN(ui.show_bootscreen());

@@ -53,6 +53,13 @@ GcodeSuite gcode;
   }
 #endif
 
+#if ENABLED(BOOK_SCANNER_PRESS)
+  #include "../feature/book_scanner_press.h"
+
+  void GcodeSuite::M932() { BookScannerPress::clamp(); }
+  void GcodeSuite::M933() { BookScannerPress::release(); }
+#endif
+
 #if ENABLED(PRINTCOUNTER)
   #include "../module/printcounter.h"
 #endif
@@ -1010,6 +1017,11 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
       #if ENABLED(BOOK_SCANNER_CALIBRATION)
         case 930: M930(); break;                                  // M930: Book scanner slow endstop calibration
         case 931: M931(); break;                                  // M931: Book scanner calibration report
+      #endif
+
+      #if ENABLED(BOOK_SCANNER_PRESS)
+        case 932: M932(); break;                                  // M932: Book scanner slow clamp until pressure
+        case 933: M933(); break;                                  // M933: Book scanner parabolic release
       #endif
 
       #if ANY(HAS_MOTOR_CURRENT_SPI, HAS_MOTOR_CURRENT_PWM, HAS_MOTOR_CURRENT_I2C, HAS_MOTOR_CURRENT_DAC)

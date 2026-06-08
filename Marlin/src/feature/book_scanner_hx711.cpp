@@ -49,6 +49,8 @@ static int64_t book_scanner_hx711_tare_sum[2] = { 0, 0 };
 static uint8_t book_scanner_hx711_tare_count[2] = { 0, 0 };
 static bool book_scanner_hx711_ready[2] = { false, false };
 static bool book_scanner_hx711_stopped = false;
+static bool book_scanner_hx711_stop_enabled = true;
+static int32_t book_scanner_hx711_delta[2] = { 0, 0 };
 static millis_t book_scanner_hx711_next_ms = 0;
 
 void BookScannerHX711::init() {
@@ -106,7 +108,8 @@ void BookScannerHX711::process_sample(const uint8_t sensor, const int32_t raw) {
   }
 
   const int32_t delta = ABS(raw - book_scanner_hx711_tare[sensor]);
-  if (delta >= BOOK_SCANNER_HX711_THRESHOLD) {
+  book_scanner_hx711_delta[sensor] = delta;
+  if (book_scanner_hx711_stop_enabled && delta >= BOOK_SCANNER_HX711_THRESHOLD) {
     pressure_stop(sensor, raw, delta);
     return;
   }
@@ -122,6 +125,29 @@ void BookScannerHX711::pressure_stop(const uint8_t sensor, const int32_t raw, co
   quickstop_stepper();
   SERIAL_ECHOLNPGM("BookScanner pressure stop sensor=", sensor, " raw=", raw, " delta=", delta);
   SERIAL_ECHOLNPGM("echo:busy: processing");
+}
+
+bool BookScannerHX711::ready() {
+  return book_scanner_hx711_ready[0] && book_scanner_hx711_ready[1];
+}
+
+bool BookScannerHX711::pressure_active() {
+  return ready() && (
+    book_scanner_hx711_delta[0] >= BOOK_SCANNER_HX711_THRESHOLD ||
+    book_scanner_hx711_delta[1] >= BOOK_SCANNER_HX711_THRESHOLD
+  );
+}
+
+int32_t BookScannerHX711::last_delta(const uint8_t sensor) {
+  return sensor < 2 ? book_scanner_hx711_delta[sensor] : 0;
+}
+
+void BookScannerHX711::clear_pressure_stop() {
+  book_scanner_hx711_stopped = false;
+}
+
+void BookScannerHX711::set_pressure_stop_enabled(const bool enabled) {
+  book_scanner_hx711_stop_enabled = enabled;
 }
 
 #endif // BOOK_SCANNER_HX711

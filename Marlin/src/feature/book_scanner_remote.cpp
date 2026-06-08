@@ -97,11 +97,11 @@ void BookScannerRemote::handle_command(const char c) {
       break;
 
     case '6': // center carriage down
-      inject_move('Z', -1, BOOK_SCANNER_REMOTE_Z_MM, BOOK_SCANNER_REMOTE_Z_FEEDRATE);
+      queue.inject(F("M932"));
       break;
 
     case '7': // center carriage up
-      inject_move('Z', 1, BOOK_SCANNER_REMOTE_Z_MM, BOOK_SCANNER_REMOTE_Z_FEEDRATE);
+      queue.inject(F("M933"));
       break;
 
     case '8':

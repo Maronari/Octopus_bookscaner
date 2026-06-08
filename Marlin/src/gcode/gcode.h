@@ -1170,6 +1170,11 @@ private:
     static void M931();
   #endif
 
+  #if ENABLED(BOOK_SCANNER_PRESS)
+    static void M932();
+    static void M933();
+  #endif
+
   #if HAS_TRINAMIC_CONFIG
     static void M122();
     static void M906();

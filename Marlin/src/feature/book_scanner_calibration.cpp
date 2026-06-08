@@ -16,6 +16,10 @@
 #include "../module/motion.h"
 #include "../module/planner.h"
 
+#if ENABLED(EEPROM_SETTINGS)
+  #include "../HAL/shared/eeprom_api.h"
+#endif
+
 #include <Arduino.h>
 
 #ifndef BOOK_SCANNER_CALIBRATION_STEP_MM
@@ -40,6 +44,16 @@
 
 static float book_scanner_axis_length[3] = { 0, 0, 0 };
 static bool book_scanner_axis_calibrated[3] = { false, false, false };
+
+struct BookScannerCalibrationStore {
+  uint32_t magic;
+  uint8_t version;
+  uint8_t calibrated[3];
+  float length[3];
+};
+
+static constexpr uint32_t BOOK_SCANNER_CALIBRATION_MAGIC = 0x42534341UL; // BSCA
+static constexpr uint8_t BOOK_SCANNER_CALIBRATION_VERSION = 1;
 
 static inline feedRate_t calibration_feedrate() {
   return MMM_TO_MMS(BOOK_SCANNER_CALIBRATION_FEEDRATE_MM_M);
@@ -83,6 +97,10 @@ static void move_axis_delta(const AxisEnum axis, const float delta, const feedRa
   sync_axis_from_stepper(axis);
 }
 
+static bool valid_axis_length(const float length) {
+  return length > 0.0f && length <= BOOK_SCANNER_CALIBRATION_MAX_TRAVEL_MM;
+}
+
 static bool release_endstop(const AxisEnum axis, const bool from_max) {
   if (!endstop_triggered(axis, from_max)) return true;
 
@@ -121,23 +139,37 @@ static bool seek_endstop(const AxisEnum axis, const bool toward_max, float &trav
   return false;
 }
 
+void BookScannerCalibration::init() {
+  load();
+  apply_limits();
+  report();
+}
+
 void BookScannerCalibration::calibrate(const bool do_x, const bool do_y, const bool do_z) {
   SERIAL_ECHOLNPGM("BookScanner calibration start");
+  bool ok = true;
 
   #if HAS_SOFTWARE_ENDSTOPS
     const bool old_soft_endstop = soft_endstop._enabled;
     soft_endstop._enabled = false;
   #endif
 
-  if (do_x) calibrate_axis(X_AXIS);
-  if (do_y) calibrate_axis(Y_AXIS);
-  if (do_z) calibrate_axis(Z_AXIS);
+  if (do_x && !calibrate_axis(X_AXIS)) ok = false;
+  if (do_y && !calibrate_axis(Y_AXIS)) ok = false;
+  if (do_z && !calibrate_axis(Z_AXIS)) ok = false;
 
   #if HAS_SOFTWARE_ENDSTOPS
     soft_endstop._enabled = old_soft_endstop;
   #endif
 
-  SERIAL_ECHOLNPGM("BookScanner calibration done");
+  if (ok) {
+    apply_limits();
+    save();
+    SERIAL_ECHOLNPGM("BookScanner calibration done");
+  }
+  else
+    SERIAL_ECHOLNPGM("BookScanner calibration failed");
+
   report();
 }
 
@@ -181,6 +213,77 @@ void BookScannerCalibration::report() {
     " Y=", book_scanner_axis_calibrated[Y_AXIS] ? book_scanner_axis_length[Y_AXIS] : -1,
     " Z=", book_scanner_axis_calibrated[Z_AXIS] ? book_scanner_axis_length[Z_AXIS] : -1
   );
+}
+
+void BookScannerCalibration::apply_limits() {
+  #if HAS_SOFTWARE_ENDSTOPS
+    for (uint8_t axis = X_AXIS; axis <= Z_AXIS; ++axis) {
+      if (!book_scanner_axis_calibrated[axis]) continue;
+      soft_endstop.min[axis] = 0.0f;
+      soft_endstop.max[axis] = book_scanner_axis_length[axis];
+    }
+  #endif
+}
+
+bool BookScannerCalibration::load() {
+  #if ENABLED(EEPROM_SETTINGS)
+    BookScannerCalibrationStore store;
+    const int pos = int(persistentStore.capacity() - sizeof(store));
+
+    if (!persistentStore.access_start()) {
+      SERIAL_ECHOLNPGM("BookScanner calibration EEPROM unavailable");
+      return false;
+    }
+
+    const bool error = persistentStore.read_data(pos, (uint8_t *)&store, sizeof(store));
+    persistentStore.access_finish();
+
+    if (error || store.magic != BOOK_SCANNER_CALIBRATION_MAGIC || store.version != BOOK_SCANNER_CALIBRATION_VERSION) {
+      SERIAL_ECHOLNPGM("BookScanner calibration EEPROM empty");
+      return false;
+    }
+
+    for (uint8_t axis = X_AXIS; axis <= Z_AXIS; ++axis) {
+      const bool calibrated = store.calibrated[axis] != 0 && valid_axis_length(store.length[axis]);
+      book_scanner_axis_calibrated[axis] = calibrated;
+      book_scanner_axis_length[axis] = calibrated ? store.length[axis] : 0.0f;
+    }
+
+    SERIAL_ECHOLNPGM("BookScanner calibration loaded from EEPROM");
+    return true;
+  #else
+    SERIAL_ECHOLNPGM("BookScanner calibration EEPROM disabled");
+    return false;
+  #endif
+}
+
+bool BookScannerCalibration::save() {
+  #if ENABLED(EEPROM_SETTINGS)
+    BookScannerCalibrationStore store;
+    store.magic = BOOK_SCANNER_CALIBRATION_MAGIC;
+    store.version = BOOK_SCANNER_CALIBRATION_VERSION;
+
+    for (uint8_t axis = X_AXIS; axis <= Z_AXIS; ++axis) {
+      store.calibrated[axis] = book_scanner_axis_calibrated[axis] ? 1 : 0;
+      store.length[axis] = book_scanner_axis_length[axis];
+    }
+
+    const int pos = int(persistentStore.capacity() - sizeof(store));
+
+    if (!persistentStore.access_start()) {
+      SERIAL_ECHOLNPGM("BookScanner calibration EEPROM unavailable");
+      return false;
+    }
+
+    const bool error = persistentStore.write_data(pos, (const uint8_t *)&store, sizeof(store));
+    persistentStore.access_finish();
+
+    SERIAL_ECHOLNPGM(error ? "BookScanner calibration EEPROM save failed" : "BookScanner calibration saved to EEPROM");
+    return !error;
+  #else
+    SERIAL_ECHOLNPGM("BookScanner calibration EEPROM disabled");
+    return false;
+  #endif
 }
 
 #endif // BOOK_SCANNER_CALIBRATION
