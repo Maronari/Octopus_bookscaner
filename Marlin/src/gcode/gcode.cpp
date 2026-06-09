@@ -60,6 +60,77 @@ GcodeSuite gcode;
   void GcodeSuite::M933() { BookScannerPress::release(); }
 #endif
 
+#if ANY(BOOK_SCANNER_CALIBRATION, BOOK_SCANNER_HX711, BOOK_SCANNER_REMOTE)
+  #include "../module/motion.h"
+  #include "../module/stepper.h"
+  #include "../module/temperature.h"
+
+  #if ENABLED(BOOK_SCANNER_HX711)
+    #include "../feature/book_scanner_hx711.h"
+  #endif
+
+  static bool book_scanner_endstop_active(const pin_t pin, const bool invert) {
+    return READ(pin) != invert;
+  }
+
+  void GcodeSuite::M940() {
+    SERIAL_ECHOLNPGM("BookScanner debug begin");
+
+    SERIAL_ECHOLNPGM(
+      "pos X=", current_position.x,
+      " Y=", current_position.y,
+      " Z=", current_position.z
+    );
+
+    SERIAL_ECHOLNPGM(
+      "motors X=", stepper.axis_is_enabled(X_AXIS),
+      " Y=", stepper.axis_is_enabled(Y_AXIS),
+      " Z=", stepper.axis_is_enabled(Z_AXIS)
+    );
+
+    SERIAL_ECHOLNPGM(
+      "endstops X_MIN=", book_scanner_endstop_active(X_MIN_PIN, X_MIN_ENDSTOP_INVERTING),
+      " X_MAX=", book_scanner_endstop_active(X_MAX_PIN, X_MAX_ENDSTOP_INVERTING),
+      " Y_MIN=", book_scanner_endstop_active(Y_MIN_PIN, Y_MIN_ENDSTOP_INVERTING),
+      " Y_MAX=", book_scanner_endstop_active(Y_MAX_PIN, Y_MAX_ENDSTOP_INVERTING),
+      " Z_MIN=", book_scanner_endstop_active(Z_MIN_PIN, Z_MIN_ENDSTOP_INVERTING),
+      " Z_MAX=", book_scanner_endstop_active(Z_MAX_PIN, Z_MAX_ENDSTOP_INVERTING)
+    );
+
+    #if HAS_SOFTWARE_ENDSTOPS
+      SERIAL_ECHOLNPGM(
+        "soft_limits enabled=", soft_endstop._enabled,
+        " X=", soft_endstop.min.x, "..", soft_endstop.max.x,
+        " Y=", soft_endstop.min.y, "..", soft_endstop.max.y,
+        " Z=", soft_endstop.min.z, "..", soft_endstop.max.z
+      );
+    #endif
+
+    #if HAS_FAN
+      SERIAL_ECHOLNPGM(
+        "outputs lamp1=", thermalManager.fan_speed[BOOK_SCANNER_REMOTE_LIGHT_FAN_1],
+        " lamp2=", thermalManager.fan_speed[BOOK_SCANNER_REMOTE_LIGHT_FAN_2],
+        " laser=", thermalManager.fan_speed[BOOK_SCANNER_LASER_FAN]
+      );
+    #endif
+
+    #if ENABLED(BOOK_SCANNER_HX711)
+      SERIAL_ECHOLNPGM(
+        "hx711 ready=", BookScannerHX711::ready(),
+        " pressure=", BookScannerHX711::pressure_active(),
+        " left_delta=", BookScannerHX711::last_delta(0),
+        " right_delta=", BookScannerHX711::last_delta(1)
+      );
+    #endif
+
+    #if ENABLED(BOOK_SCANNER_CALIBRATION)
+      BookScannerCalibration::report();
+    #endif
+
+    SERIAL_ECHOLNPGM("BookScanner debug end");
+  }
+#endif
+
 #if ENABLED(PRINTCOUNTER)
   #include "../module/printcounter.h"
 #endif
@@ -1022,6 +1093,10 @@ void GcodeSuite::process_parsed_command(const bool no_ok/*=false*/) {
       #if ENABLED(BOOK_SCANNER_PRESS)
         case 932: M932(); break;                                  // M932: Book scanner slow clamp until pressure
         case 933: M933(); break;                                  // M933: Book scanner parabolic release
+      #endif
+
+      #if ANY(BOOK_SCANNER_CALIBRATION, BOOK_SCANNER_HX711, BOOK_SCANNER_REMOTE)
+        case 940: M940(); break;                                  // M940: Book scanner debug report
       #endif
 
       #if ANY(HAS_MOTOR_CURRENT_SPI, HAS_MOTOR_CURRENT_PWM, HAS_MOTOR_CURRENT_I2C, HAS_MOTOR_CURRENT_DAC)

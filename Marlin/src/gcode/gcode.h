@@ -1175,6 +1175,10 @@ private:
     static void M933();
   #endif
 
+  #if ANY(BOOK_SCANNER_CALIBRATION, BOOK_SCANNER_HX711, BOOK_SCANNER_REMOTE)
+    static void M940();
+  #endif
+
   #if HAS_TRINAMIC_CONFIG
     static void M122();
     static void M906();
